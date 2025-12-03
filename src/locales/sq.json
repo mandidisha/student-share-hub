@@ -1,0 +1,63 @@
+{
+  "brand": "StudentStay",
+  "nav": {
+    "browse": "Shfleto",
+    "postRoom": "Posto Dhomë",
+    "messages": "Mesazhet",
+    "dashboard": "Paneli",
+    "signIn": "Hyr",
+    "signOut": "Dil",
+    "getStarted": "Fillo Tani"
+  },
+  "footer": {
+    "copyright": "© 2024 StudentStay. Duke ndihmuar studentët të gjejnë strehim të përballueshëm.",
+    "privacy": "Privatësia",
+    "terms": "Kushtet",
+    "contact": "Kontakti"
+  },
+  "home": {
+    "heroTitle": "Gjeni Dhomën Tuaj Ideale të Studentit",
+    "heroSubtitle": "Lidhuni me studentë dhe pronarë që ofrojnë dhoma të përballueshme pranë universitetit tuaj",
+    "browseListings": "Shfleto Njoftimet",
+    "postYourRoom": "Posto Dhomën Tënde",
+    "howItWorks": "Si Funksionon",
+    "step1Title": "Kërko",
+    "step1Desc": "Shfleto dhomat e disponueshme pranë universitetit",
+    "step2Title": "Lidhu",
+    "step2Desc": "Dërgo mesazh pronarëve dhe planifiko vizita",
+    "step3Title": "Transferohu",
+    "step3Desc": "Gjeni akomodimin tuaj ideal të studentit",
+    "featuredListings": "Njoftimet e Zgjedhura",
+    "viewAllListings": "Shiko Të Gjitha Njoftimet",
+    "noListingsYet": "Nuk ka njoftime ende. Bëhu i pari që poston!",
+    "ctaTitle": "Gati të Gjesh Dhomën Tënde?",
+    "ctaSubtitle": "Bashkohu me mijëra studentë që gjejnë strehim të përballueshëm"
+  },
+  "listings": {
+    "title": "Gjeni Dhomën Tuaj",
+    "searchPlaceholder": "Kërko sipas vendndodhjes ose titullit...",
+    "search": "Kërko",
+    "filters": "Filtrat",
+    "roomType": "Lloji i Dhomës",
+    "allTypes": "Të Gjitha Llojet",
+    "priceRange": "Çmimi",
+    "minPrice": "Çmimi min",
+    "maxPrice": "Çmimi maks",
+    "amenities": "Pajisjet",
+    "clearFilters": "Pastro Filtrat",
+    "sortBy": "Rendit sipas",
+    "newest": "Më të Rejat",
+    "priceLowHigh": "Çmimi: Ulët në Lartë",
+    "priceHighLow": "Çmimi: Lartë në Ulët",
+    "noListingsFound": "Nuk u gjet asnjë njoftim",
+    "tryAdjusting": "Provoni të ndryshoni filtrat ose termat e kërkimit",
+    "availableFrom": "E disponueshme nga",
+    "perMonth": "/muaj"
+  },
+  "roomTypes": {
+    "single": "Dhomë Individuale",
+    "shared": "Dhomë e Përbashkët",
+    "studio": "Studio",
+    "apartment": "Apartament i Plotë"
+  }
+}

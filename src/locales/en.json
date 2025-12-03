@@ -1,0 +1,63 @@
+{
+  "brand": "StudentStay",
+  "nav": {
+    "browse": "Browse",
+    "postRoom": "Post Room",
+    "messages": "Messages",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "getStarted": "Get Started"
+  },
+  "footer": {
+    "copyright": "© 2024 StudentStay. Helping students find affordable housing.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  },
+  "home": {
+    "heroTitle": "Find Your Perfect Student Room",
+    "heroSubtitle": "Connect with students and landlords offering affordable rooms near your university",
+    "browseListings": "Browse Listings",
+    "postYourRoom": "Post Your Room",
+    "howItWorks": "How It Works",
+    "step1Title": "Search",
+    "step1Desc": "Browse available rooms near your university",
+    "step2Title": "Connect",
+    "step2Desc": "Message landlords and schedule viewings",
+    "step3Title": "Move In",
+    "step3Desc": "Find your perfect student accommodation",
+    "featuredListings": "Featured Listings",
+    "viewAllListings": "View All Listings",
+    "noListingsYet": "No listings available yet. Be the first to post!",
+    "ctaTitle": "Ready to Find Your Room?",
+    "ctaSubtitle": "Join thousands of students finding affordable housing"
+  },
+  "listings": {
+    "title": "Find Your Room",
+    "searchPlaceholder": "Search by location or title...",
+    "search": "Search",
+    "filters": "Filters",
+    "roomType": "Room Type",
+    "allTypes": "All Types",
+    "priceRange": "Price Range",
+    "minPrice": "Min price",
+    "maxPrice": "Max price",
+    "amenities": "Amenities",
+    "clearFilters": "Clear Filters",
+    "sortBy": "Sort by",
+    "newest": "Newest",
+    "priceLowHigh": "Price: Low to High",
+    "priceHighLow": "Price: High to Low",
+    "noListingsFound": "No listings found",
+    "tryAdjusting": "Try adjusting your filters or search terms",
+    "availableFrom": "Available from",
+    "perMonth": "/month"
+  },
+  "roomTypes": {
+    "single": "Single Room",
+    "shared": "Shared Room",
+    "studio": "Studio",
+    "apartment": "Entire Apartment"
+  }
+}

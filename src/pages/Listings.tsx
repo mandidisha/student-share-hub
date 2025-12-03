@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export default function Listings() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -106,6 +108,10 @@ export default function Listings() {
 
   const hasActiveFilters = search || roomType !== 'all' || priceMin || priceMax || selectedAmenities.length > 0;
 
+  const getRoomTypeLabel = (value: string) => {
+    return t(`roomTypes.${value}`);
+  };
+
   return (
     <Layout>
       <div className="container py-8">
@@ -114,16 +120,16 @@ export default function Listings() {
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-24 space-y-6">
               <div>
-                <h3 className="font-semibold mb-3">Room Type</h3>
+                <h3 className="font-semibold mb-3">{t('listings.roomType')}</h3>
                 <Select value={roomType} onValueChange={setRoomType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
+                    <SelectValue placeholder={t('listings.allTypes')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="all">{t('listings.allTypes')}</SelectItem>
                     {ROOM_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        {getRoomTypeLabel(type.value)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -131,16 +137,16 @@ export default function Listings() {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-3">Price Range</h3>
+                <h3 className="font-semibold mb-3">{t('listings.priceRange')}</h3>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Min"
+                    placeholder={t('listings.minPrice')}
                     type="number"
                     value={priceMin}
                     onChange={(e) => setPriceMin(e.target.value)}
                   />
                   <Input
-                    placeholder="Max"
+                    placeholder={t('listings.maxPrice')}
                     type="number"
                     value={priceMax}
                     onChange={(e) => setPriceMax(e.target.value)}
@@ -149,7 +155,7 @@ export default function Listings() {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-3">Amenities</h3>
+                <h3 className="font-semibold mb-3">{t('listings.amenities')}</h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {AMENITIES.map((amenity) => (
                     <div key={amenity} className="flex items-center gap-2">
@@ -175,7 +181,7 @@ export default function Listings() {
               {hasActiveFilters && (
                 <Button variant="outline" className="w-full" onClick={clearFilters}>
                   <X className="h-4 w-4 mr-2" />
-                  Clear Filters
+                  {t('listings.clearFilters')}
                 </Button>
               )}
             </div>
@@ -188,24 +194,24 @@ export default function Listings() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by location, title..."
+                    placeholder={t('listings.searchPlaceholder')}
                     className="pl-10"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <Button type="submit">Search</Button>
+                <Button type="submit">{t('listings.search')}</Button>
               </form>
 
               <div className="flex gap-2">
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Sort by" />
+                    <SelectValue placeholder={t('listings.sortBy')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="newest">{t('listings.newest')}</SelectItem>
+                    <SelectItem value="price-low">{t('listings.priceLowHigh')}</SelectItem>
+                    <SelectItem value="price-high">{t('listings.priceHighLow')}</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -218,35 +224,35 @@ export default function Listings() {
                   </SheetTrigger>
                   <SheetContent>
                     <SheetHeader>
-                      <SheetTitle>Filters</SheetTitle>
+                      <SheetTitle>{t('listings.filters')}</SheetTitle>
                     </SheetHeader>
                     <div className="space-y-6 pt-6">
                       <div>
-                        <h3 className="font-semibold mb-3">Room Type</h3>
+                        <h3 className="font-semibold mb-3">{t('listings.roomType')}</h3>
                         <Select value={roomType} onValueChange={setRoomType}>
                           <SelectTrigger>
-                            <SelectValue placeholder="All Types" />
+                            <SelectValue placeholder={t('listings.allTypes')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
+                            <SelectItem value="all">{t('listings.allTypes')}</SelectItem>
                             {ROOM_TYPES.map((type) => (
                               <SelectItem key={type.value} value={type.value}>
-                                {type.label}
+                                {getRoomTypeLabel(type.value)}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-3">Price Range</h3>
+                        <h3 className="font-semibold mb-3">{t('listings.priceRange')}</h3>
                         <div className="flex gap-2">
-                          <Input placeholder="Min" type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} />
-                          <Input placeholder="Max" type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} />
+                          <Input placeholder={t('listings.minPrice')} type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} />
+                          <Input placeholder={t('listings.maxPrice')} type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} />
                         </div>
                       </div>
                       {hasActiveFilters && (
                         <Button variant="outline" className="w-full" onClick={clearFilters}>
-                          Clear Filters
+                          {t('listings.clearFilters')}
                         </Button>
                       )}
                     </div>
@@ -278,8 +284,8 @@ export default function Listings() {
             ) : (
               <div className="text-center py-16">
                 <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No listings found</h3>
-                <p className="text-muted-foreground">Try adjusting your filters or search terms</p>
+                <h3 className="text-lg font-semibold mb-2">{t('listings.noListingsFound')}</h3>
+                <p className="text-muted-foreground">{t('listings.tryAdjusting')}</p>
               </div>
             )}
           </div>
