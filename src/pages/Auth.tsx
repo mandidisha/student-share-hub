@@ -9,6 +9,7 @@ import { Layout } from '@/components/layout/Layout';
 import { toast } from 'sonner';
 import { Home, Mail, Lock, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { signInSchema, signUpSchema } from '@/lib/validations';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -17,6 +18,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -28,15 +30,27 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
 
     try {
+      // Validate with zod
+      const schema = isSignUp ? signUpSchema : signInSchema;
+      const data = isSignUp ? { email, password, fullName } : { email, password };
+      const result = schema.safeParse(data);
+
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          const field = err.path[0] as string;
+          fieldErrors[field] = err.message;
+        });
+        setErrors(fieldErrors);
+        setLoading(false);
+        return;
+      }
+
       if (isSignUp) {
-        if (!fullName.trim()) {
-          toast.error('Please enter your full name');
-          setLoading(false);
-          return;
-        }
         const { error } = await signUp(email, password, fullName);
         if (error) {
           if (error.message.includes('already registered')) {
@@ -94,10 +108,10 @@ export default function Auth() {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10"
-                      required
+                      className={`pl-10 ${errors.fullName ? 'border-destructive' : ''}`}
                     />
                   </div>
+                  {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
                 </div>
               )}
               <div className="space-y-2">
@@ -110,10 +124,10 @@ export default function Auth() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
+                    className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
                   />
                 </div>
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -125,11 +139,10 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    minLength={6}
-                    required
+                    className={`pl-10 ${errors.password ? 'border-destructive' : ''}`}
                   />
                 </div>
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
@@ -142,7 +155,10 @@ export default function Auth() {
               <button
                 type="button"
                 className="text-primary hover:underline font-medium"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setErrors({});
+                }}
               >
                 {isSignUp ? 'Sign In' : 'Sign Up'}
               </button>

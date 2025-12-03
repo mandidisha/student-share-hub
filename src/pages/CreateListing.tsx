@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ROOM_TYPES, AMENITIES } from '@/types/database';
 import { toast } from 'sonner';
 import { Upload, X } from 'lucide-react';
+import { listingSchema } from '@/lib/validations';
 
 export default function CreateListing() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function CreateListing() {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     title: '',
@@ -66,7 +68,21 @@ export default function CreateListing() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
+
+    // Validate with zod
+    const result = listingSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      setLoading(false);
+      return;
+    }
 
     try {
       // Upload images
@@ -137,8 +153,9 @@ export default function CreateListing() {
                     placeholder="e.g., Cozy single room near campus"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
+                    className={errors.title ? 'border-destructive' : ''}
                   />
+                  {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -150,8 +167,9 @@ export default function CreateListing() {
                       placeholder="500"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      required
+                      className={errors.price ? 'border-destructive' : ''}
                     />
+                    {errors.price && <p className="text-sm text-destructive mt-1">{errors.price}</p>}
                   </div>
                   <div>
                     <Label htmlFor="room_type">Room Type *</Label>
@@ -181,8 +199,9 @@ export default function CreateListing() {
                       placeholder="e.g., Downtown Boston"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      required
+                      className={errors.location ? 'border-destructive' : ''}
                     />
+                    {errors.location && <p className="text-sm text-destructive mt-1">{errors.location}</p>}
                   </div>
                   <div>
                     <Label htmlFor="address">Address (optional)</Label>
@@ -203,7 +222,9 @@ export default function CreateListing() {
                     rows={4}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className={errors.description ? 'border-destructive' : ''}
                   />
+                  {errors.description && <p className="text-sm text-destructive mt-1">{errors.description}</p>}
                 </div>
               </div>
 
@@ -218,8 +239,9 @@ export default function CreateListing() {
                       type="date"
                       value={formData.available_from}
                       onChange={(e) => setFormData({ ...formData, available_from: e.target.value })}
-                      required
+                      className={errors.available_from ? 'border-destructive' : ''}
                     />
+                    {errors.available_from && <p className="text-sm text-destructive mt-1">{errors.available_from}</p>}
                   </div>
                   <div>
                     <Label htmlFor="available_until">Available Until (optional)</Label>
