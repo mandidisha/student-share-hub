@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { Upload, X } from 'lucide-react';
 import { listingSchema } from '@/lib/validations';
 
 export default function CreateListing() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export default function CreateListing() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + images.length > 10) {
-      toast.error('Maximum 10 images allowed');
+      toast.error(t('createListing.maxImagesError'));
       return;
     }
 
@@ -125,13 +127,20 @@ export default function CreateListing() {
 
       if (error) throw error;
 
-      toast.success('Listing created successfully!');
+      toast.success(t('createListing.listingCreated'));
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create listing');
+      toast.error(error.message || t('createListing.failedToCreate'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const roomTypeLabels: Record<string, string> = {
+    single: t('roomTypes.single'),
+    shared: t('roomTypes.shared'),
+    studio: t('roomTypes.studio'),
+    apartment: t('roomTypes.apartment'),
   };
 
   return (
@@ -139,18 +148,18 @@ export default function CreateListing() {
       <div className="container max-w-3xl py-8">
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle className="text-2xl font-display">Post a Room</CardTitle>
-            <CardDescription>Fill in the details to list your room for students</CardDescription>
+            <CardTitle className="text-2xl font-display">{t('createListing.title')}</CardTitle>
+            <CardDescription>{t('createListing.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">{t('createListing.titleLabel')} *</Label>
                   <Input
                     id="title"
-                    placeholder="e.g., Cozy single room near campus"
+                    placeholder={t('createListing.titlePlaceholder')}
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className={errors.title ? 'border-destructive' : ''}
@@ -160,7 +169,7 @@ export default function CreateListing() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="price">Monthly Rent ($) *</Label>
+                    <Label htmlFor="price">{t('createListing.monthlyRent')} *</Label>
                     <Input
                       id="price"
                       type="number"
@@ -172,7 +181,7 @@ export default function CreateListing() {
                     {errors.price && <p className="text-sm text-destructive mt-1">{errors.price}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="room_type">Room Type *</Label>
+                    <Label htmlFor="room_type">{t('createListing.roomType')} *</Label>
                     <Select
                       value={formData.room_type}
                       onValueChange={(value: any) => setFormData({ ...formData, room_type: value })}
@@ -183,7 +192,7 @@ export default function CreateListing() {
                       <SelectContent>
                         {ROOM_TYPES.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
-                            {type.label}
+                            {roomTypeLabels[type.value] || type.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -193,10 +202,10 @@ export default function CreateListing() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="location">City/Area *</Label>
+                    <Label htmlFor="location">{t('createListing.cityArea')} *</Label>
                     <Input
                       id="location"
-                      placeholder="e.g., Downtown Boston"
+                      placeholder={t('createListing.cityAreaPlaceholder')}
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className={errors.location ? 'border-destructive' : ''}
@@ -204,10 +213,10 @@ export default function CreateListing() {
                     {errors.location && <p className="text-sm text-destructive mt-1">{errors.location}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="address">Address (optional)</Label>
+                    <Label htmlFor="address">{t('createListing.address')}</Label>
                     <Input
                       id="address"
-                      placeholder="123 Main St"
+                      placeholder={t('createListing.addressPlaceholder')}
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     />
@@ -215,10 +224,10 @@ export default function CreateListing() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('createListing.description')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the room, neighborhood, and what's included..."
+                    placeholder={t('createListing.descriptionPlaceholder')}
                     rows={4}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -230,10 +239,10 @@ export default function CreateListing() {
 
               {/* Availability */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Availability</h3>
+                <h3 className="font-semibold">{t('createListing.availability')}</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="available_from">Available From *</Label>
+                    <Label htmlFor="available_from">{t('createListing.availableFrom')} *</Label>
                     <Input
                       id="available_from"
                       type="date"
@@ -244,7 +253,7 @@ export default function CreateListing() {
                     {errors.available_from && <p className="text-sm text-destructive mt-1">{errors.available_from}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="available_until">Available Until (optional)</Label>
+                    <Label htmlFor="available_until">{t('createListing.availableUntil')}</Label>
                     <Input
                       id="available_until"
                       type="date"
@@ -257,7 +266,7 @@ export default function CreateListing() {
 
               {/* Amenities */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Amenities</h3>
+                <h3 className="font-semibold">{t('createListing.amenities')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {AMENITIES.map((amenity) => (
                     <div key={amenity} className="flex items-center gap-2">
@@ -282,10 +291,10 @@ export default function CreateListing() {
 
               {/* House Rules */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Preferences & Rules</h3>
+                <h3 className="font-semibold">{t('createListing.preferencesRules')}</h3>
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div>
-                    <Label>Preferred Gender</Label>
+                    <Label>{t('createListing.preferredGender')}</Label>
                     <Select
                       value={formData.preferred_gender}
                       onValueChange={(value: any) => setFormData({ ...formData, preferred_gender: value })}
@@ -294,9 +303,9 @@ export default function CreateListing() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="any">{t('createListing.genderAny')}</SelectItem>
+                        <SelectItem value="male">{t('createListing.genderMale')}</SelectItem>
+                        <SelectItem value="female">{t('createListing.genderFemale')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -306,7 +315,7 @@ export default function CreateListing() {
                       checked={formData.pets_allowed}
                       onCheckedChange={(checked) => setFormData({ ...formData, pets_allowed: !!checked })}
                     />
-                    <Label htmlFor="pets_allowed" className="cursor-pointer">Pets Allowed</Label>
+                    <Label htmlFor="pets_allowed" className="cursor-pointer">{t('createListing.petsAllowed')}</Label>
                   </div>
                   <div className="flex items-center gap-2 pt-6">
                     <Checkbox
@@ -314,14 +323,14 @@ export default function CreateListing() {
                       checked={formData.smoking_allowed}
                       onCheckedChange={(checked) => setFormData({ ...formData, smoking_allowed: !!checked })}
                     />
-                    <Label htmlFor="smoking_allowed" className="cursor-pointer">Smoking Allowed</Label>
+                    <Label htmlFor="smoking_allowed" className="cursor-pointer">{t('createListing.smokingAllowed')}</Label>
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="house_rules">Additional House Rules</Label>
+                  <Label htmlFor="house_rules">{t('createListing.additionalRules')}</Label>
                   <Textarea
                     id="house_rules"
-                    placeholder="e.g., Quiet hours after 10pm, no parties..."
+                    placeholder={t('createListing.rulesPlaceholder')}
                     rows={2}
                     value={formData.house_rules}
                     onChange={(e) => setFormData({ ...formData, house_rules: e.target.value })}
@@ -331,7 +340,7 @@ export default function CreateListing() {
 
               {/* Images */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Photos</h3>
+                <h3 className="font-semibold">{t('createListing.photos')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
@@ -350,7 +359,7 @@ export default function CreateListing() {
                   {images.length < 10 && (
                     <label className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
                       <Upload className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Add Photo</span>
+                      <span className="text-xs text-muted-foreground mt-1">{t('createListing.addPhoto')}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -361,11 +370,11 @@ export default function CreateListing() {
                     </label>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">Upload up to 10 photos. First photo will be the cover.</p>
+                <p className="text-xs text-muted-foreground">{t('createListing.photosHint')}</p>
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : 'Post Listing'}
+                {loading ? t('createListing.creating') : t('createListing.postListing')}
               </Button>
             </form>
           </CardContent>
