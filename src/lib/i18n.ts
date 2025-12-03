@@ -3,7 +3,12 @@ import { initReactI18next } from 'react-i18next';
 import en from '@/locales/en.json';
 import sq from '@/locales/sq.json';
 
-const savedLanguage = localStorage.getItem('language') || 'en';
+const getSavedLanguage = () => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem('language') || 'en';
+  }
+  return 'en';
+};
 
 i18n
   .use(initReactI18next)
@@ -12,7 +17,7 @@ i18n
       en: { translation: en },
       sq: { translation: sq },
     },
-    lng: savedLanguage,
+    lng: getSavedLanguage(),
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
