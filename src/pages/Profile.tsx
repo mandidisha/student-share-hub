@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Profile as ProfileType } from '@/types/database';
 import { toast } from 'sonner';
+import { profileSchema } from '@/lib/validations';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -71,7 +73,21 @@ export default function Profile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
+
+    // Validate with zod
+    const result = profileSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      setLoading(false);
+      return;
+    }
 
     try {
       let avatar_url = profile?.avatar_url;
@@ -151,7 +167,9 @@ export default function Profile() {
                     id="full_name"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    className={errors.full_name ? 'border-destructive' : ''}
                   />
+                  {errors.full_name && <p className="text-sm text-destructive mt-1">{errors.full_name}</p>}
                 </div>
 
                 <div>
@@ -162,7 +180,9 @@ export default function Profile() {
                     rows={3}
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    className={errors.bio ? 'border-destructive' : ''}
                   />
+                  {errors.bio && <p className="text-sm text-destructive mt-1">{errors.bio}</p>}
                 </div>
               </div>
 
@@ -181,7 +201,9 @@ export default function Profile() {
                     placeholder="contact@example.com"
                     value={formData.email_public}
                     onChange={(e) => setFormData({ ...formData, email_public: e.target.value })}
+                    className={errors.email_public ? 'border-destructive' : ''}
                   />
+                  {errors.email_public && <p className="text-sm text-destructive mt-1">{errors.email_public}</p>}
                 </div>
 
                 <div>
@@ -192,7 +214,9 @@ export default function Profile() {
                     placeholder="+1 234 567 8900"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className={errors.phone ? 'border-destructive' : ''}
                   />
+                  {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
                 </div>
 
                 <div>
@@ -203,7 +227,9 @@ export default function Profile() {
                     placeholder="+1 234 567 8900"
                     value={formData.whatsapp}
                     onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    className={errors.whatsapp ? 'border-destructive' : ''}
                   />
+                  {errors.whatsapp && <p className="text-sm text-destructive mt-1">{errors.whatsapp}</p>}
                 </div>
               </div>
 
