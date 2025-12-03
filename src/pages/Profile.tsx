@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Camera, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { toast } from 'sonner';
 import { profileSchema } from '@/lib/validations';
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -119,10 +121,10 @@ export default function Profile() {
 
       if (error) throw error;
 
-      toast.success('Profile updated successfully!');
+      toast.success(t('profile.profileUpdated'));
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || t('profile.failedToUpdate'));
     } finally {
       setLoading(false);
     }
@@ -133,8 +135,8 @@ export default function Profile() {
       <div className="container max-w-2xl py-8">
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle className="text-2xl font-display">Edit Profile</CardTitle>
-            <CardDescription>Update your profile information and contact details</CardDescription>
+            <CardTitle className="text-2xl font-display">{t('profile.title')}</CardTitle>
+            <CardDescription>{t('profile.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -162,7 +164,7 @@ export default function Profile() {
               {/* Basic Info */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="full_name">Full Name</Label>
+                  <Label htmlFor="full_name">{t('profile.fullName')}</Label>
                   <Input
                     id="full_name"
                     value={formData.full_name}
@@ -173,10 +175,10 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">{t('profile.bio')}</Label>
                   <Textarea
                     id="bio"
-                    placeholder="Tell others a bit about yourself..."
+                    placeholder={t('profile.bioPlaceholder')}
                     rows={3}
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -188,13 +190,13 @@ export default function Profile() {
 
               {/* Contact Info */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Contact Information</h3>
+                <h3 className="font-semibold">{t('profile.contactInfo')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  This information will be shown to users viewing your listings.
+                  {t('profile.contactInfoDesc')}
                 </p>
 
                 <div>
-                  <Label htmlFor="email_public">Public Email</Label>
+                  <Label htmlFor="email_public">{t('profile.publicEmail')}</Label>
                   <Input
                     id="email_public"
                     type="email"
@@ -207,7 +209,7 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t('profile.phone')}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -220,7 +222,7 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <Label htmlFor="whatsapp">WhatsApp Number</Label>
+                  <Label htmlFor="whatsapp">{t('profile.whatsapp')}</Label>
                   <Input
                     id="whatsapp"
                     type="tel"
@@ -235,7 +237,7 @@ export default function Profile() {
 
               <Button type="submit" className="w-full" disabled={loading}>
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? t('profile.saving') : t('profile.saveChanges')}
               </Button>
             </form>
           </CardContent>

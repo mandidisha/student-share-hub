@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Send, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ interface ConversationWithDetails extends Conversation {
 }
 
 export default function Messages() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -182,7 +184,7 @@ export default function Messages() {
   const formatMessageDate = (dateString: string) => {
     const date = new Date(dateString);
     if (isToday(date)) return format(date, 'h:mm a');
-    if (isYesterday(date)) return 'Yesterday';
+    if (isYesterday(date)) return t('messages.yesterday');
     return format(date, 'MMM d');
   };
 
@@ -197,7 +199,7 @@ export default function Messages() {
               selectedConvoId && "hidden md:flex"
             )}>
               <div className="p-4 border-b">
-                <h2 className="font-semibold">Messages</h2>
+                <h2 className="font-semibold">{t('messages.title')}</h2>
               </div>
               <ScrollArea className="flex-1">
                 {conversations && conversations.length > 0 ? (
@@ -234,8 +236,8 @@ export default function Messages() {
                   ))
                 ) : (
                   <div className="p-8 text-center text-muted-foreground">
-                    <p>No conversations yet</p>
-                    <p className="text-sm mt-1">Message a listing poster to start chatting</p>
+                    <p>{t('messages.noConversations')}</p>
+                    <p className="text-sm mt-1">{t('messages.noConversationsDesc')}</p>
                   </div>
                 )}
               </ScrollArea>
@@ -303,7 +305,7 @@ export default function Messages() {
 
                   <form onSubmit={sendMessage} className="p-4 border-t flex gap-2">
                     <Input
-                      placeholder="Type a message..."
+                      placeholder={t('messages.typeMessage')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       disabled={sending}
@@ -316,7 +318,7 @@ export default function Messages() {
               ) : (
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div>
-                    <p className="text-muted-foreground">Select a conversation to start messaging</p>
+                    <p className="text-muted-foreground">{t('messages.selectConversation')}</p>
                   </div>
                 </div>
               )}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PlusCircle, Edit, Trash2, Eye, EyeOff, Heart, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -74,9 +76,9 @@ export default function Dashboard() {
       .eq('id', listingId);
 
     if (error) {
-      toast.error('Failed to update listing');
+      toast.error(t('dashboard.failedToUpdate'));
     } else {
-      toast.success(isActive ? 'Listing deactivated' : 'Listing activated');
+      toast.success(isActive ? t('dashboard.listingDeactivated') : t('dashboard.listingActivated'));
       queryClient.invalidateQueries({ queryKey: ['my-listings'] });
     }
   };
@@ -88,9 +90,9 @@ export default function Dashboard() {
       .eq('id', listingId);
 
     if (error) {
-      toast.error('Failed to delete listing');
+      toast.error(t('dashboard.failedToDelete'));
     } else {
-      toast.success('Listing deleted');
+      toast.success(t('dashboard.listingDeleted'));
       queryClient.invalidateQueries({ queryKey: ['my-listings'] });
     }
   };
@@ -103,7 +105,7 @@ export default function Dashboard() {
       .eq('listing_id', listingId);
 
     if (error) {
-      toast.error('Failed to remove favorite');
+      toast.error(t('dashboard.failedToRemove'));
     } else {
       queryClient.invalidateQueries({ queryKey: ['favorite-listings'] });
     }
@@ -126,18 +128,18 @@ export default function Dashboard() {
                 <Link to="/profile">
                   <Button variant="outline" size="sm" className="mt-4">
                     <Settings className="h-4 w-4 mr-2" />
-                    Edit Profile
+                    {t('dashboard.editProfile')}
                   </Button>
                 </Link>
               </div>
 
               <div className="mt-6 pt-6 border-t space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">My Listings</span>
+                  <span className="text-muted-foreground">{t('dashboard.myListings')}</span>
                   <span className="font-medium">{myListings?.length || 0}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Saved</span>
+                  <span className="text-muted-foreground">{t('dashboard.saved')}</span>
                   <span className="font-medium">{favoriteListings?.length || 0}</span>
                 </div>
               </div>
@@ -149,13 +151,13 @@ export default function Dashboard() {
             <Tabs defaultValue="listings">
               <div className="flex items-center justify-between mb-6">
                 <TabsList>
-                  <TabsTrigger value="listings">My Listings</TabsTrigger>
-                  <TabsTrigger value="favorites">Saved</TabsTrigger>
+                  <TabsTrigger value="listings">{t('dashboard.myListings')}</TabsTrigger>
+                  <TabsTrigger value="favorites">{t('dashboard.saved')}</TabsTrigger>
                 </TabsList>
                 <Link to="/create-listing">
                   <Button>
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Post Room
+                    {t('dashboard.postRoom')}
                   </Button>
                 </Link>
               </div>
@@ -184,11 +186,11 @@ export default function Dashboard() {
                                   <p className="text-lg font-bold text-primary">${listing.price}/mo</p>
                                 </div>
                                 <Badge variant={listing.is_active ? 'default' : 'secondary'}>
-                                  {listing.is_active ? 'Active' : 'Inactive'}
+                                  {listing.is_active ? t('dashboard.active') : t('dashboard.inactive')}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Posted {format(new Date(listing.created_at), 'MMM d, yyyy')}
+                                {t('dashboard.posted')} {format(new Date(listing.created_at), 'MMM d, yyyy')}
                               </p>
                             </div>
                           </div>
@@ -196,7 +198,7 @@ export default function Dashboard() {
                             <Link to={`/edit-listing/${listing.id}`}>
                               <Button variant="outline" size="sm">
                                 <Edit className="h-4 w-4 mr-1" />
-                                Edit
+                                {t('dashboard.edit')}
                               </Button>
                             </Link>
                             <Button
@@ -207,12 +209,12 @@ export default function Dashboard() {
                               {listing.is_active ? (
                                 <>
                                   <EyeOff className="h-4 w-4 mr-1" />
-                                  Deactivate
+                                  {t('dashboard.deactivate')}
                                 </>
                               ) : (
                                 <>
                                   <Eye className="h-4 w-4 mr-1" />
-                                  Activate
+                                  {t('dashboard.activate')}
                                 </>
                               )}
                             </Button>
@@ -220,20 +222,20 @@ export default function Dashboard() {
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="text-destructive">
                                   <Trash2 className="h-4 w-4 mr-1" />
-                                  Delete
+                                  {t('dashboard.delete')}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Listing?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t('dashboard.deleteListing')}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action cannot be undone. The listing will be permanently deleted.
+                                    {t('dashboard.deleteWarning')}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogCancel>{t('dashboard.cancel')}</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => deleteListing(listing.id)}>
-                                    Delete
+                                    {t('dashboard.delete')}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -247,10 +249,10 @@ export default function Dashboard() {
                   <Card className="shadow-card">
                     <CardContent className="py-12 text-center">
                       <PlusCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No listings yet</h3>
-                      <p className="text-muted-foreground mb-4">Post your first room to start connecting with students</p>
+                      <h3 className="text-lg font-semibold mb-2">{t('dashboard.noListingsYet')}</h3>
+                      <p className="text-muted-foreground mb-4">{t('dashboard.noListingsDesc')}</p>
                       <Link to="/create-listing">
-                        <Button>Post Your Room</Button>
+                        <Button>{t('dashboard.postYourRoom')}</Button>
                       </Link>
                     </CardContent>
                   </Card>
@@ -273,10 +275,10 @@ export default function Dashboard() {
                   <Card className="shadow-card">
                     <CardContent className="py-12 text-center">
                       <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No saved listings</h3>
-                      <p className="text-muted-foreground mb-4">Save listings you're interested in to view them here</p>
+                      <h3 className="text-lg font-semibold mb-2">{t('dashboard.noSavedListings')}</h3>
+                      <p className="text-muted-foreground mb-4">{t('dashboard.noSavedDesc')}</p>
                       <Link to="/listings">
-                        <Button>Browse Listings</Button>
+                        <Button>{t('dashboard.browseListings')}</Button>
                       </Link>
                     </CardContent>
                   </Card>

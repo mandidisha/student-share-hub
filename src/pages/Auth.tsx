@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { signInSchema, signUpSchema } from '@/lib/validations';
 
 export default function Auth() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
   const [email, setEmail] = useState('');
@@ -54,25 +56,25 @@ export default function Auth() {
         const { error } = await signUp(email, password, fullName);
         if (error) {
           if (error.message.includes('already registered')) {
-            toast.error('This email is already registered. Please sign in.');
+            toast.error(t('auth.emailAlreadyRegistered'));
           } else {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created successfully!');
+          toast.success(t('auth.accountCreated'));
           navigate('/');
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          toast.error('Invalid email or password');
+          toast.error(t('auth.invalidCredentials'));
         } else {
-          toast.success('Welcome back!');
+          toast.success(t('auth.welcomeBack') + '!');
           navigate('/');
         }
       }
     } catch (error) {
-      toast.error('An unexpected error occurred');
+      toast.error(t('auth.unexpectedError'));
     } finally {
       setLoading(false);
     }
@@ -85,22 +87,20 @@ export default function Auth() {
           <CardHeader className="text-center">
             <Link to="/" className="inline-flex items-center justify-center gap-2 mb-4">
               <Home className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold font-display">StudentStay</span>
+              <span className="text-2xl font-bold font-display">{t('brand')}</span>
             </Link>
             <CardTitle className="text-2xl">
-              {isSignUp ? 'Create an Account' : 'Welcome Back'}
+              {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
             </CardTitle>
             <CardDescription>
-              {isSignUp
-                ? 'Sign up to start finding or posting rooms'
-                : 'Sign in to your account to continue'}
+              {isSignUp ? t('auth.signUpSubtitle') : t('auth.signInSubtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{t('auth.fullName')}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -115,7 +115,7 @@ export default function Auth() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -130,7 +130,7 @@ export default function Auth() {
                 {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -145,12 +145,12 @@ export default function Auth() {
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+                {loading ? t('auth.pleaseWait') : isSignUp ? t('auth.createAccountBtn') : t('auth.signInBtn')}
               </Button>
             </form>
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">
-                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
               </span>{' '}
               <button
                 type="button"
@@ -160,7 +160,7 @@ export default function Auth() {
                   setErrors({});
                 }}
               >
-                {isSignUp ? 'Sign In' : 'Sign Up'}
+                {isSignUp ? t('auth.signInBtn') : t('auth.signUp')}
               </button>
             </div>
           </CardContent>
