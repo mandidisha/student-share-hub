@@ -212,45 +212,9 @@ export type Database = {
       }
     }
     Views: {
-      profiles_public: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string | null
-          email_public: string | null
-          full_name: string | null
-          id: string | null
-          phone: string | null
-          updated_at: string | null
-          whatsapp: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          email_public?: never
-          full_name?: string | null
-          id?: string | null
-          phone?: never
-          updated_at?: string | null
-          whatsapp?: never
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          email_public?: never
-          full_name?: string | null
-          id?: string | null
-          phone?: never
-          updated_at?: string | null
-          whatsapp?: never
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      can_view_contact_info: { Args: { profile_id: string }; Returns: boolean }
       can_view_profile: { Args: { profile_id: string }; Returns: boolean }
     }
     Enums: {
