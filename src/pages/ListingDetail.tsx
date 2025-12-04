@@ -1,5 +1,4 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { MapPin, Calendar, Check, X, MessageCircle, Mail, Phone, ExternalLink, ChevronLeft, Heart } from 'lucide-react';
@@ -9,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Layout } from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
-import { Listing, Profile, ROOM_TYPES } from '@/types/database';
 import { useAuth } from '@/hooks/useAuth';
+import { useListing } from '@/hooks/useListings';
+import { useProfile } from '@/hooks/useProfiles';
+import { useIsFavorite, useToggleFavorite } from '@/hooks/useFavorites';
+import { useHasConversation, useStartConversation } from '@/hooks/useConversations';
 import { toast } from 'sonner';
 
 export default function ListingDetail() {
@@ -27,77 +28,41 @@ export default function ListingDetail() {
     apartment: t('roomTypes.apartment'),
   };
 
-  const { data: listing, isLoading } = useQuery({
-    queryKey: ['listing', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Listing;
-    },
-  });
-
-  const { data: posterProfile } = useQuery({
-    queryKey: ['poster-profile', listing?.user_id],
-    enabled: !!listing?.user_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', listing!.user_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Profile;
-    },
-  });
-
-  // Check if user has an existing conversation with the listing owner
-  const { data: hasConversation } = useQuery({
-    queryKey: ['has-conversation', listing?.user_id, user?.id],
-    enabled: !!listing?.user_id && !!user?.id && user.id !== listing?.user_id,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`and(participant_1.eq.${user!.id},participant_2.eq.${listing!.user_id}),and(participant_1.eq.${listing!.user_id},participant_2.eq.${user!.id})`)
-        .maybeSingle();
-      return !!data;
-    },
-  });
-
-  const { data: isFavorite } = useQuery({
-    queryKey: ['favorite', id, user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from('favorites').select('id').eq('user_id', user!.id).eq('listing_id', id!).maybeSingle();
-      return !!data;
-    },
-  });
+  const { data: listing, isLoading } = useListing(id);
+  const { data: posterProfile } = useProfile(listing?.user_id);
+  const { data: hasConversation } = useHasConversation(user?.id, listing?.user_id);
+  const { data: isFavorite } = useIsFavorite(user?.id, id);
+  
+  const toggleFavoriteMutation = useToggleFavorite();
+  const startConversationMutation = useStartConversation();
 
   const toggleFavorite = async () => {
     if (!user) { toast.error(t('listingDetail.signInToSave')); return; }
-    if (isFavorite) {
-      await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', id!);
-      toast.success(t('listingDetail.removedFromFavorites'));
-    } else {
-      await supabase.from('favorites').insert({ user_id: user.id, listing_id: id });
-      toast.success(t('listingDetail.addedToFavorites'));
-    }
+    toggleFavoriteMutation.mutate(
+      { userId: user.id, listingId: id!, isFavorite: isFavorite || false },
+      {
+        onSuccess: () => {
+          toast.success(isFavorite ? t('listingDetail.removedFromFavorites') : t('listingDetail.addedToFavorites'));
+        },
+      }
+    );
   };
 
   const startConversation = async () => {
     if (!user) { toast.error(t('listingDetail.signInToMessage')); navigate('/auth'); return; }
     if (!listing) return;
-    const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1.eq.${user.id},participant_2.eq.${listing.user_id}),and(participant_1.eq.${listing.user_id},participant_2.eq.${user.id})`).eq('listing_id', listing.id).maybeSingle();
-    if (existing) {
-      navigate(`/messages?conversation=${existing.id}`);
-    } else {
-      const { data: newConvo, error } = await supabase.from('conversations').insert({ participant_1: user.id, participant_2: listing.user_id, listing_id: listing.id }).select('id').single();
-      if (error) { toast.error(t('listingDetail.failedToStart')); } else { navigate(`/messages?conversation=${newConvo.id}`); }
-    }
+
+    startConversationMutation.mutate(
+      { userId: user.id, otherUserId: listing.user_id, listingId: listing.id },
+      {
+        onSuccess: (result) => {
+          navigate(`/messages?conversation=${result.id}`);
+        },
+        onError: () => {
+          toast.error(t('listingDetail.failedToStart'));
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -143,7 +108,7 @@ export default function ListingDetail() {
               <CardContent className="space-y-4">
                 {posterProfile && (<div className="flex items-center gap-3"><Avatar className="h-12 w-12"><AvatarImage src={posterProfile.avatar_url || ''} /><AvatarFallback>{posterProfile.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar><div><p className="font-medium">{posterProfile.full_name || 'User'}</p><p className="text-sm text-muted-foreground">{t('listingDetail.postedBy')}</p></div></div>)}
                 <Separator />
-                {user?.id !== listing.user_id && (<Button className="w-full" onClick={startConversation}><MessageCircle className="h-4 w-4 mr-2" />{t('listingDetail.sendMessage')}</Button>)}
+                {user?.id !== listing.user_id && (<Button className="w-full" onClick={startConversation} disabled={startConversationMutation.isPending}><MessageCircle className="h-4 w-4 mr-2" />{t('listingDetail.sendMessage')}</Button>)}
                 {/* Contact info only visible after starting conversation */}
                 {(hasConversation || user?.id === listing.user_id) && posterProfile?.email_public && (<Button variant="outline" className="w-full" asChild><a href={`mailto:${posterProfile.email_public}`}><Mail className="h-4 w-4 mr-2" />{t('listingDetail.email')}</a></Button>)}
                 {(hasConversation || user?.id === listing.user_id) && posterProfile?.phone && (<Button variant="outline" className="w-full" asChild><a href={`tel:${posterProfile.phone}`}><Phone className="h-4 w-4 mr-2" />{t('listingDetail.call')}</a></Button>)}

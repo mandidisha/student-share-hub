@@ -1,19 +1,18 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { PlusCircle, Edit, Trash2, Eye, EyeOff, Heart, User, Settings } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye, EyeOff, Heart, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Layout } from '@/components/layout/Layout';
 import { ListingCard } from '@/components/listings/ListingCard';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Listing, Profile } from '@/types/database';
+import { useProfile } from '@/hooks/useProfiles';
+import { useUserListings, useToggleListingStatus, useDeleteListing } from '@/hooks/useListings';
+import { useFavoriteListings, useRemoveFavorite } from '@/hooks/useFavorites';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -21,48 +20,14 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Profile;
-    },
-  });
-
-  const { data: myListings } = useQuery({
-    queryKey: ['my-listings', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as Listing[];
-    },
-  });
-
-  const { data: favoriteListings } = useQuery({
-    queryKey: ['favorite-listings', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('favorites')
-        .select('listing_id, listings(*)')
-        .eq('user_id', user!.id);
-      if (error) throw error;
-      return data.map((f: any) => f.listings) as Listing[];
-    },
-  });
+  const { data: profile } = useProfile(user?.id);
+  const { data: myListings } = useUserListings(user?.id);
+  const { data: favoriteListings } = useFavoriteListings(user?.id);
+  
+  const toggleStatusMutation = useToggleListingStatus();
+  const deleteMutation = useDeleteListing();
+  const removeFavoriteMutation = useRemoveFavorite();
 
   if (!user) {
     navigate('/auth');
@@ -70,45 +35,39 @@ export default function Dashboard() {
   }
 
   const toggleListingStatus = async (listingId: string, isActive: boolean) => {
-    const { error } = await supabase
-      .from('listings')
-      .update({ is_active: !isActive })
-      .eq('id', listingId);
-
-    if (error) {
-      toast.error(t('dashboard.failedToUpdate'));
-    } else {
-      toast.success(isActive ? t('dashboard.listingDeactivated') : t('dashboard.listingActivated'));
-      queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    }
+    toggleStatusMutation.mutate(
+      { id: listingId, isActive },
+      {
+        onSuccess: () => {
+          toast.success(isActive ? t('dashboard.listingDeactivated') : t('dashboard.listingActivated'));
+        },
+        onError: () => {
+          toast.error(t('dashboard.failedToUpdate'));
+        },
+      }
+    );
   };
 
   const deleteListing = async (listingId: string) => {
-    const { error } = await supabase
-      .from('listings')
-      .delete()
-      .eq('id', listingId);
-
-    if (error) {
-      toast.error(t('dashboard.failedToDelete'));
-    } else {
-      toast.success(t('dashboard.listingDeleted'));
-      queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    }
+    deleteMutation.mutate(listingId, {
+      onSuccess: () => {
+        toast.success(t('dashboard.listingDeleted'));
+      },
+      onError: () => {
+        toast.error(t('dashboard.failedToDelete'));
+      },
+    });
   };
 
   const removeFavorite = async (listingId: string) => {
-    const { error } = await supabase
-      .from('favorites')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('listing_id', listingId);
-
-    if (error) {
-      toast.error(t('dashboard.failedToRemove'));
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['favorite-listings'] });
-    }
+    removeFavoriteMutation.mutate(
+      { userId: user.id, listingId },
+      {
+        onError: () => {
+          toast.error(t('dashboard.failedToRemove'));
+        },
+      }
+    );
   };
 
   return (

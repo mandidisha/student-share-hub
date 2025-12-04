@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Layout } from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
 import { ROOM_TYPES, AMENITIES } from '@/types/database';
+import { useCreateListing } from '@/hooks/useListings';
 import { toast } from 'sonner';
 import { Upload, X } from 'lucide-react';
 import { listingSchema } from '@/lib/validations';
@@ -20,10 +20,11 @@ export default function CreateListing() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createListingMutation = useCreateListing();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -71,7 +72,6 @@ export default function CreateListing() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setLoading(true);
 
     // Validate with zod
     const result = listingSchema.safeParse(formData);
@@ -82,58 +82,39 @@ export default function CreateListing() {
         fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
-      setLoading(false);
       return;
     }
 
-    try {
-      // Upload images
-      const imageUrls: string[] = [];
-      for (const image of images) {
-        const fileExt = image.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('listings')
-          .upload(fileName, image);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('listings')
-          .getPublicUrl(fileName);
-
-        imageUrls.push(publicUrl);
+    createListingMutation.mutate(
+      {
+        data: {
+          user_id: user.id,
+          title: formData.title,
+          description: formData.description || undefined,
+          price: parseFloat(formData.price),
+          location: formData.location,
+          address: formData.address || undefined,
+          room_type: formData.room_type,
+          available_from: formData.available_from,
+          available_until: formData.available_until || undefined,
+          amenities: formData.amenities,
+          house_rules: formData.house_rules || undefined,
+          preferred_gender: formData.preferred_gender,
+          pets_allowed: formData.pets_allowed,
+          smoking_allowed: formData.smoking_allowed,
+        },
+        images,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('createListing.listingCreated'));
+          navigate('/dashboard');
+        },
+        onError: (error: any) => {
+          toast.error(error.message || t('createListing.failedToCreate'));
+        },
       }
-
-      // Create listing
-      const { error } = await supabase.from('listings').insert({
-        user_id: user.id,
-        title: formData.title,
-        description: formData.description || null,
-        price: parseFloat(formData.price),
-        location: formData.location,
-        address: formData.address || null,
-        room_type: formData.room_type,
-        available_from: formData.available_from,
-        available_until: formData.available_until || null,
-        amenities: formData.amenities,
-        house_rules: formData.house_rules || null,
-        preferred_gender: formData.preferred_gender,
-        pets_allowed: formData.pets_allowed,
-        smoking_allowed: formData.smoking_allowed,
-        images: imageUrls,
-      });
-
-      if (error) throw error;
-
-      toast.success(t('createListing.listingCreated'));
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || t('createListing.failedToCreate'));
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   const roomTypeLabels: Record<string, string> = {
@@ -373,8 +354,8 @@ export default function CreateListing() {
                 <p className="text-xs text-muted-foreground">{t('createListing.photosHint')}</p>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? t('createListing.creating') : t('createListing.postListing')}
+              <Button type="submit" className="w-full" disabled={createListingMutation.isPending}>
+                {createListingMutation.isPending ? t('createListing.creating') : t('createListing.postListing')}
               </Button>
             </form>
           </CardContent>
