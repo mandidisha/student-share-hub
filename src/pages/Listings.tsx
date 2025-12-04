@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Layout } from '@/components/layout/Layout';
 import { ListingCard } from '@/components/listings/ListingCard';
-import { supabase } from '@/integrations/supabase/client';
-import { Listing, ROOM_TYPES, AMENITIES } from '@/types/database';
+import { ROOM_TYPES, AMENITIES } from '@/types/database';
 import { useAuth } from '@/hooks/useAuth';
+import { useListings } from '@/hooks/useListings';
+import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { toast } from 'sonner';
 
 export default function Listings() {
@@ -22,74 +22,30 @@ export default function Listings() {
   const { user } = useAuth();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [roomType, setRoomType] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high'>('newest');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
-  const { data: listings, isLoading } = useQuery({
-    queryKey: ['listings', search, roomType, sortBy, priceMin, priceMax, selectedAmenities],
-    queryFn: async () => {
-      let query = supabase
-        .from('listings')
-        .select('*')
-        .eq('is_active', true);
-
-      if (search) {
-        query = query.or(`title.ilike.%${search}%,location.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-      if (roomType && roomType !== 'all') {
-        query = query.eq('room_type', roomType);
-      }
-      if (priceMin) {
-        query = query.gte('price', parseFloat(priceMin));
-      }
-      if (priceMax) {
-        query = query.lte('price', parseFloat(priceMax));
-      }
-      if (selectedAmenities.length > 0) {
-        query = query.contains('amenities', selectedAmenities);
-      }
-
-      if (sortBy === 'newest') {
-        query = query.order('created_at', { ascending: false });
-      } else if (sortBy === 'price-low') {
-        query = query.order('price', { ascending: true });
-      } else if (sortBy === 'price-high') {
-        query = query.order('price', { ascending: false });
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Listing[];
-    },
+  const { data: listings, isLoading } = useListings({
+    search,
+    roomType,
+    sortBy,
+    priceMin,
+    priceMax,
+    amenities: selectedAmenities,
   });
 
-  const { data: favorites } = useQuery({
-    queryKey: ['favorites', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('favorites')
-        .select('listing_id')
-        .eq('user_id', user!.id);
-      if (error) throw error;
-      return data.map(f => f.listing_id);
-    },
-  });
+  const { data: favorites } = useFavoriteIds(user?.id);
+  const toggleFavoriteMutation = useToggleFavorite();
 
   const toggleFavorite = async (listingId: string) => {
     if (!user) {
       toast.error('Please sign in to save favorites');
       return;
     }
-
-    const isFavorite = favorites?.includes(listingId);
-    if (isFavorite) {
-      await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', listingId);
-    } else {
-      await supabase.from('favorites').insert({ user_id: user.id, listing_id: listingId });
-    }
+    const isFavorite = favorites?.includes(listingId) || false;
+    toggleFavoriteMutation.mutate({ userId: user.id, listingId, isFavorite });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -204,7 +160,7 @@ export default function Listings() {
               </form>
 
               <div className="flex gap-2">
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'newest' | 'price-low' | 'price-high')}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder={t('listings.sortBy')} />
                   </SelectTrigger>

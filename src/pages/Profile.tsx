@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Camera, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,9 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Layout } from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Profile as ProfileType } from '@/types/database';
+import { useProfile, useUpdateProfile } from '@/hooks/useProfiles';
 import { toast } from 'sonner';
 import { profileSchema } from '@/lib/validations';
 
@@ -20,8 +18,6 @@ export default function Profile() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,19 +30,8 @@ export default function Profile() {
     email_public: '',
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as ProfileType;
-    },
-  });
+  const { data: profile } = useProfile(user?.id);
+  const updateProfileMutation = useUpdateProfile();
 
   useEffect(() => {
     if (profile) {
@@ -76,7 +61,6 @@ export default function Profile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setLoading(true);
 
     // Validate with zod
     const result = profileSchema.safeParse(formData);
@@ -87,47 +71,27 @@ export default function Profile() {
         fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
-      setLoading(false);
       return;
     }
 
-    try {
-      let avatar_url = profile?.avatar_url;
-
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}/avatar.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('listings')
-          .upload(fileName, avatarFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('listings')
-          .getPublicUrl(fileName);
-
-        avatar_url = publicUrl;
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+    updateProfileMutation.mutate(
+      {
+        userId: user.id,
+        data: {
           ...formData,
-          avatar_url,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast.success(t('profile.profileUpdated'));
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-    } catch (error: any) {
-      toast.error(error.message || t('profile.failedToUpdate'));
-    } finally {
-      setLoading(false);
-    }
+          avatar_url: profile?.avatar_url,
+        },
+        avatarFile: avatarFile || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('profile.profileUpdated'));
+        },
+        onError: (error: any) => {
+          toast.error(error.message || t('profile.failedToUpdate'));
+        },
+      }
+    );
   };
 
   return (
@@ -235,9 +199,9 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={updateProfileMutation.isPending}>
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? t('profile.saving') : t('profile.saveChanges')}
+                {updateProfileMutation.isPending ? t('profile.saving') : t('profile.saveChanges')}
               </Button>
             </form>
           </CardContent>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Layout } from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
-import { ROOM_TYPES, AMENITIES, Listing } from '@/types/database';
+import { ROOM_TYPES, AMENITIES } from '@/types/database';
+import { useUserOwnedListing, useUpdateListing } from '@/hooks/useListings';
 import { toast } from 'sonner';
 import { Upload, X } from 'lucide-react';
 
@@ -19,8 +18,6 @@ export default function EditListing() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -41,20 +38,8 @@ export default function EditListing() {
     smoking_allowed: false,
   });
 
-  const { data: listing, isLoading } = useQuery({
-    queryKey: ['listing', id],
-    enabled: !!id && !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Listing;
-    },
-  });
+  const { data: listing, isLoading } = useUserOwnedListing(id, user?.id);
+  const updateListingMutation = useUpdateListing();
 
   useEffect(() => {
     if (listing) {
@@ -136,51 +121,39 @@ export default function EditListing() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      const uploadedUrls: string[] = [];
-      for (const image of newImages) {
-        const fileExt = image.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('listings').upload(fileName, image);
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('listings').getPublicUrl(fileName);
-        uploadedUrls.push(publicUrl);
-      }
-
-      const allImages = [...existingImages, ...uploadedUrls];
-
-      const { error } = await supabase
-        .from('listings')
-        .update({
+    updateListingMutation.mutate(
+      {
+        id: id!,
+        data: {
           title: formData.title,
-          description: formData.description || null,
+          description: formData.description || undefined,
           price: parseFloat(formData.price),
           location: formData.location,
-          address: formData.address || null,
+          address: formData.address || undefined,
           room_type: formData.room_type,
           available_from: formData.available_from,
-          available_until: formData.available_until || null,
+          available_until: formData.available_until || undefined,
           amenities: formData.amenities,
-          house_rules: formData.house_rules || null,
+          house_rules: formData.house_rules || undefined,
           preferred_gender: formData.preferred_gender,
           pets_allowed: formData.pets_allowed,
           smoking_allowed: formData.smoking_allowed,
-          images: allImages,
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      toast.success('Listing updated successfully!');
-      queryClient.invalidateQueries({ queryKey: ['listing', id] });
-      queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update listing');
-    } finally {
-      setLoading(false);
-    }
+        },
+        newImages,
+        existingImages,
+        userId: user.id,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Listing updated successfully!');
+          navigate('/dashboard');
+        },
+        onError: (error: any) => {
+          toast.error(error.message || 'Failed to update listing');
+        },
+      }
+    );
   };
 
   const totalImages = existingImages.length + newImages.length;
@@ -269,7 +242,7 @@ export default function EditListing() {
 
               <div className="flex gap-4">
                 <Button type="button" variant="outline" onClick={() => navigate('/dashboard')} className="flex-1">Cancel</Button>
-                <Button type="submit" className="flex-1" disabled={loading}>{loading ? 'Saving...' : 'Save Changes'}</Button>
+                <Button type="submit" className="flex-1" disabled={updateListingMutation.isPending}>{updateListingMutation.isPending ? 'Saving...' : 'Save Changes'}</Button>
               </div>
             </form>
           </CardContent>

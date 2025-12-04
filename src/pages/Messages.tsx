@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Send, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,15 +9,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Message, Conversation, Profile } from '@/types/database';
+import { useConversations } from '@/hooks/useConversations';
+import { useMessages, useSendMessage, useMarkMessagesAsRead } from '@/hooks/useMessages';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-interface ConversationWithDetails extends Conversation {
-  other_user: Profile;
-  listing_title?: string;
-  last_message?: Message;
-}
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Messages() {
   const { t } = useTranslation();
@@ -28,76 +23,12 @@ export default function Messages() {
   const [searchParams] = useSearchParams();
   const selectedConvoId = searchParams.get('conversation');
   const [newMessage, setNewMessage] = useState('');
-  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversations } = useQuery({
-    queryKey: ['conversations', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`participant_1.eq.${user!.id},participant_2.eq.${user!.id}`)
-        .order('last_message_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch other user profiles and listing titles
-      const enriched = await Promise.all(
-        data.map(async (conv: Conversation) => {
-          const otherUserId = conv.participant_1 === user!.id ? conv.participant_2 : conv.participant_1;
-          
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', otherUserId)
-            .maybeSingle();
-
-          let listing_title;
-          if (conv.listing_id) {
-            const { data: listing } = await supabase
-              .from('listings')
-              .select('title')
-              .eq('id', conv.listing_id)
-              .maybeSingle();
-            listing_title = listing?.title;
-          }
-
-          const { data: lastMessage } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          return {
-            ...conv,
-            other_user: profile as Profile,
-            listing_title,
-            last_message: lastMessage as Message,
-          };
-        })
-      );
-
-      return enriched as ConversationWithDetails[];
-    },
-  });
-
-  const { data: messages } = useQuery({
-    queryKey: ['messages', selectedConvoId],
-    enabled: !!selectedConvoId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', selectedConvoId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data as Message[];
-    },
-  });
+  const { data: conversations } = useConversations(user?.id);
+  const { data: messages } = useMessages(selectedConvoId);
+  const sendMessageMutation = useSendMessage();
+  const markAsReadMutation = useMarkMessagesAsRead();
 
   const selectedConversation = conversations?.find(c => c.id === selectedConvoId);
 
@@ -138,16 +69,9 @@ export default function Messages() {
 
     const unreadMessages = messages.filter(m => m.receiver_id === user.id && !m.is_read);
     if (unreadMessages.length > 0) {
-      supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('conversation_id', selectedConvoId)
-        .eq('receiver_id', user.id)
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        });
+      markAsReadMutation.mutate({ conversationId: selectedConvoId, userId: user.id });
     }
-  }, [selectedConvoId, user, messages, queryClient]);
+  }, [selectedConvoId, user, messages]);
 
   if (!user) {
     navigate('/auth');
@@ -158,27 +82,23 @@ export default function Messages() {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
 
-    setSending(true);
     const receiverId = selectedConversation.participant_1 === user.id
       ? selectedConversation.participant_2
       : selectedConversation.participant_1;
 
-    const { error } = await supabase.from('messages').insert({
-      conversation_id: selectedConversation.id,
-      sender_id: user.id,
-      receiver_id: receiverId,
-      content: newMessage.trim(),
-    });
-
-    if (!error) {
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', selectedConversation.id);
-
-      setNewMessage('');
-    }
-    setSending(false);
+    sendMessageMutation.mutate(
+      {
+        conversation_id: selectedConversation.id,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        content: newMessage.trim(),
+      },
+      {
+        onSuccess: () => {
+          setNewMessage('');
+        },
+      }
+    );
   };
 
   const formatMessageDate = (dateString: string) => {
@@ -308,9 +228,9 @@ export default function Messages() {
                       placeholder={t('messages.typeMessage')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      disabled={sending}
+                      disabled={sendMessageMutation.isPending}
                     />
-                    <Button type="submit" disabled={!newMessage.trim() || sending}>
+                    <Button type="submit" disabled={!newMessage.trim() || sendMessageMutation.isPending}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </form>
