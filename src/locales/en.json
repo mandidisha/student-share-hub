@@ -168,7 +168,8 @@
     "removedFromFavorites": "Removed from favorites",
     "addedToFavorites": "Added to favorites",
     "signInToMessage": "Please sign in to message",
-    "failedToStart": "Failed to start conversation"
+    "failedToStart": "Failed to start conversation",
+    "contactAfterMessage": "Start a conversation to see contact details"
   },
   "messages": {
     "title": "Messages",

@@ -168,7 +168,8 @@
     "removedFromFavorites": "U hoq nga të preferuarat",
     "addedToFavorites": "U shtua te të preferuarat",
     "signInToMessage": "Ju lutem hyni për të dërguar mesazh",
-    "failedToStart": "Dështoi fillimi i bisedës"
+    "failedToStart": "Dështoi fillimi i bisedës",
+    "contactAfterMessage": "Filloni një bisedë për të parë detajet e kontaktit"
   },
   "messages": {
     "title": "Mesazhet",

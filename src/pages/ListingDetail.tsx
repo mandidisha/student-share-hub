@@ -41,17 +41,30 @@ export default function ListingDetail() {
   });
 
   const { data: posterProfile } = useQuery({
-    queryKey: ['poster-profile', listing?.user_id, user?.id],
+    queryKey: ['poster-profile', listing?.user_id],
     enabled: !!listing?.user_id,
     queryFn: async () => {
-      // Use profiles_public view which hides contact info unless user is in conversation
       const { data, error } = await supabase
-        .from('profiles_public')
+        .from('profiles')
         .select('*')
         .eq('id', listing!.user_id)
         .maybeSingle();
       if (error) throw error;
       return data as Profile;
+    },
+  });
+
+  // Check if user has an existing conversation with the listing owner
+  const { data: hasConversation } = useQuery({
+    queryKey: ['has-conversation', listing?.user_id, user?.id],
+    enabled: !!listing?.user_id && !!user?.id && user.id !== listing?.user_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(participant_1.eq.${user!.id},participant_2.eq.${listing!.user_id}),and(participant_1.eq.${listing!.user_id},participant_2.eq.${user!.id})`)
+        .maybeSingle();
+      return !!data;
     },
   });
 
@@ -131,9 +144,13 @@ export default function ListingDetail() {
                 {posterProfile && (<div className="flex items-center gap-3"><Avatar className="h-12 w-12"><AvatarImage src={posterProfile.avatar_url || ''} /><AvatarFallback>{posterProfile.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar><div><p className="font-medium">{posterProfile.full_name || 'User'}</p><p className="text-sm text-muted-foreground">{t('listingDetail.postedBy')}</p></div></div>)}
                 <Separator />
                 {user?.id !== listing.user_id && (<Button className="w-full" onClick={startConversation}><MessageCircle className="h-4 w-4 mr-2" />{t('listingDetail.sendMessage')}</Button>)}
-                {posterProfile?.email_public && (<Button variant="outline" className="w-full" asChild><a href={`mailto:${posterProfile.email_public}`}><Mail className="h-4 w-4 mr-2" />{t('listingDetail.email')}</a></Button>)}
-                {posterProfile?.phone && (<Button variant="outline" className="w-full" asChild><a href={`tel:${posterProfile.phone}`}><Phone className="h-4 w-4 mr-2" />{t('listingDetail.call')}</a></Button>)}
-                {posterProfile?.whatsapp && (<Button variant="outline" className="w-full" asChild><a href={`https://wa.me/${posterProfile.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 mr-2" />{t('listingDetail.whatsapp')}</a></Button>)}
+                {/* Contact info only visible after starting conversation */}
+                {(hasConversation || user?.id === listing.user_id) && posterProfile?.email_public && (<Button variant="outline" className="w-full" asChild><a href={`mailto:${posterProfile.email_public}`}><Mail className="h-4 w-4 mr-2" />{t('listingDetail.email')}</a></Button>)}
+                {(hasConversation || user?.id === listing.user_id) && posterProfile?.phone && (<Button variant="outline" className="w-full" asChild><a href={`tel:${posterProfile.phone}`}><Phone className="h-4 w-4 mr-2" />{t('listingDetail.call')}</a></Button>)}
+                {(hasConversation || user?.id === listing.user_id) && posterProfile?.whatsapp && (<Button variant="outline" className="w-full" asChild><a href={`https://wa.me/${posterProfile.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 mr-2" />{t('listingDetail.whatsapp')}</a></Button>)}
+                {!hasConversation && user?.id !== listing.user_id && (posterProfile?.email_public || posterProfile?.phone || posterProfile?.whatsapp) && (
+                  <p className="text-xs text-muted-foreground text-center">{t('listingDetail.contactAfterMessage', 'Start a conversation to see contact details')}</p>
+                )}
               </CardContent>
             </Card>
           </div>
