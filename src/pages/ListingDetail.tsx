@@ -41,11 +41,12 @@ export default function ListingDetail() {
   });
 
   const { data: posterProfile } = useQuery({
-    queryKey: ['poster-profile', listing?.user_id],
+    queryKey: ['poster-profile', listing?.user_id, user?.id],
     enabled: !!listing?.user_id,
     queryFn: async () => {
+      // Use profiles_public view which hides contact info unless user is in conversation
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('*')
         .eq('id', listing!.user_id)
         .maybeSingle();
